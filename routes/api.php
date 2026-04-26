@@ -39,7 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Teacher (Tutor) Routes
     Route::prefix('teacher')->middleware('role:tutor')->group(function () {
-        // ... (existing routes)
+        Route::get('/dashboard', [TeacherDashboardController::class, 'index']);
+        Route::put('/profile', [TeacherDashboardController::class, 'updateProfile']);
+        Route::put('/location', [TeacherDashboardController::class, 'updateLocation']);
+        Route::get('/reviews', [TeacherDashboardController::class, 'reviews']);
+        Route::post('/toggle-availability', [TeacherDashboardController::class, 'toggleAvailability']);
+        
         Route::get('/earnings', [\App\Http\Controllers\Api\RevenueController::class, 'tutorEarnings']);
         // (Booking, Slots, Attendance routes already added)
     });
