@@ -54,7 +54,6 @@ class AuthController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'OTP sent successfully',
-                'otp' => $otp // For testing, return it. In production, remove this!
             ]);
         } catch (\Exception $e) {
             return response()->json([
