@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 use App\Mail\OtpMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class AuthController extends Controller
@@ -35,18 +36,8 @@ class AuthController extends Controller
 
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         
-        // We can either update an existing unverified user or just store it in session/cache.
-        // For simplicity and since we want to handle registration AFTER verification,
-        // we'll just return success if we can send it.
-        // In a real app, you'd store this in a table. 
-        // Let's use the users table but only if they started registration.
-        // Or better, a dedicated OTP table. But we added columns to users, so let's use that.
-        
-        if (!$user) {
-            // Create a temporary user or just send OTP if email is free
-            // Actually, usually we send OTP *after* user fills form but *before* they are "active".
-            // Let's assume the Flutter app sends email first.
-        }
+        // Save OTP to cache for 10 minutes
+        Cache::put('otp_' . $request->email, $otp, now()->addMinutes(10));
 
         try {
             Mail::to($request->email)->send(new OtpMail($otp));
@@ -70,6 +61,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
             'role' => 'required|in:student,tutor',
+            'otp' => 'required|string|size:6',
             // Tutor specific fields
             'phone' => 'required_if:role,tutor|string|max:20',
             'city' => 'required_if:role,tutor|string',
@@ -77,6 +69,16 @@ class AuthController extends Controller
             'area' => 'required_if:role,tutor|string',
             'tutor_type' => 'required_if:role,tutor|in:home,online,both',
         ]);
+
+        $cachedOtp = Cache::get('otp_' . $request->email);
+        if (!$cachedOtp || $cachedOtp !== $request->otp) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or expired OTP'
+            ], 400);
+        }
+
+        Cache::forget('otp_' . $request->email);
 
         return DB::transaction(function () use ($request) {
             $user = User::create([
