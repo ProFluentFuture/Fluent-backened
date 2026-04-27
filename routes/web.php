@@ -140,6 +140,9 @@ Route::middleware(['auth', 'role:tutor'])->prefix('teacher')->group(function () 
 
         Route::get('/bookings', [TeacherWebController::class, 'bookings'])->name('teacher.bookings');
         Route::post('/bookings/{id}/status/{status}', [TeacherWebController::class, 'updateBookingStatus'])->name('teacher.bookings.status');
+        Route::get('/slots', [TeacherWebController::class, 'slots'])->name('teacher.slots');
+        Route::post('/slots', [TeacherWebController::class, 'storeSlot'])->name('teacher.slots.store');
+        Route::delete('/slots/{id}', [TeacherWebController::class, 'destroySlot'])->name('teacher.slots.destroy');
         Route::get('/earnings', [TeacherWebController::class, 'earnings'])->name('teacher.earnings');
     });
 });

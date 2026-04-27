@@ -80,6 +80,28 @@
         </div>
     </div>
 
+    <!-- Slot Management Card -->
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <a href="{{ route('teacher.slots') }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm p-4 h-100" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(79, 70, 229, 0.02) 100%);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-4 d-flex align-items-center justify-content-center me-4" style="width: 60px; height: 60px; background: rgba(79, 70, 229, 0.1); color: var(--primary);">
+                            <i class="fas fa-calendar-alt fs-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-1 fw-bold">Manage Availability Slots</h5>
+                            <p class="text-muted mb-0">Set your available time slots for students to book sessions with you.</p>
+                        </div>
+                        <div class="text-end">
+                            <i class="fas fa-arrow-right fs-4" style="color: var(--primary);"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
     <!-- Quick Actions -->
     <div class="row g-4">
         <div class="col-lg-8">

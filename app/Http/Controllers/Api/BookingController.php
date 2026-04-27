@@ -109,8 +109,8 @@ class BookingController extends Controller
             'message' => $status === 'accepted'
                 ? 'Booking automatically accepted based on proximity!'
                 : 'Booking requested successfully.',
-            'booking' => $booking
-        ]);
+            'booking' => $booking->load(['tutor', 'slot'])
+        ], 200);
     }
 
     /**

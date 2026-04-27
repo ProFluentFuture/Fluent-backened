@@ -57,6 +57,33 @@ class TeacherWebController extends Controller
         return view('tutor.slots.index', compact('slots'));
     }
 
+    public function storeSlot(Request $request)
+    {
+        $request->validate([
+            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+        ]);
+
+        AvailabilitySlot::create([
+            'tutor_id' => Auth::id(),
+            'day_of_week' => $request->day_of_week,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('teacher.slots')->with('success', 'Slot added successfully.');
+    }
+
+    public function destroySlot($id)
+    {
+        $slot = AvailabilitySlot::where('tutor_id', Auth::id())->findOrFail($id);
+        $slot->delete();
+
+        return response()->json(['status' => 'success', 'message' => 'Slot deleted successfully.']);
+    }
+
     public function profile()
     {
         $user = Auth::user();
