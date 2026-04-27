@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\TutorController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TeacherDashboardController;
+use App\Http\Controllers\Api\TutorBookingController;
+use App\Http\Controllers\Api\LessonController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -44,9 +46,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/location', [TeacherDashboardController::class, 'updateLocation']);
         Route::get('/reviews', [TeacherDashboardController::class, 'reviews']);
         Route::post('/toggle-availability', [TeacherDashboardController::class, 'toggleAvailability']);
-        
+
         Route::get('/earnings', [\App\Http\Controllers\Api\RevenueController::class, 'tutorEarnings']);
-        // (Booking, Slots, Attendance routes already added)
+
+        // Booking management
+        Route::get('/bookings', [TutorBookingController::class, 'bookings']);
+        Route::put('/bookings/{id}/status', [TutorBookingController::class, 'updateBookingStatus']);
+        Route::put('/slots', [TutorBookingController::class, 'updateSlots']);
+        Route::post('/auto-accept', [TutorBookingController::class, 'toggleAutoAccept']);
     });
 
     // Chat System (Shared)
@@ -81,4 +88,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Plans and Progress
     Route::get('/plans', [\App\Http\Controllers\Api\PlanController::class, 'index']);
     Route::get('/progress', [\App\Http\Controllers\Api\ProgressController::class, 'index']);
+
+    // Lesson Levels
+    Route::get('/levels', [LessonController::class, 'listLevels']);
+    Route::get('/levels/{level_name}', [LessonController::class, 'getLevelData']);
 });
