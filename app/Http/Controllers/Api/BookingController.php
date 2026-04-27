@@ -44,13 +44,14 @@ class BookingController extends Controller
 
         // Smart Feature: Auto Accept Nearby Requests
         $status = 'pending';
-        if ($tutor->tutorProfile->auto_accept_nearby && $request->lat && $request->lng) {
+        $tutorProfile = $tutor->tutorProfile;
+        if ($tutorProfile && $tutorProfile->auto_accept_nearby && $request->lat && $request->lng) {
             $distance = $this->calculateDistance(
                 $request->lat, $request->lng,
-                $tutor->location->latitude ?? 0, $tutor->location->longitude ?? 0 // Using database column names
+                $tutor->location->latitude ?? 0,
+                $tutor->location->longitude ?? 0
             );
-
-            if ($distance <= $tutor->tutorProfile->max_auto_accept_distance) {
+            if ($distance <= ($tutorProfile->max_auto_accept_distance ?? 10)) {
                 $status = 'accepted';
             }
         }
@@ -68,15 +69,19 @@ class BookingController extends Controller
             'status' => $status,
         ]);
 
-        // Send Email to Tutor
-        \Illuminate\Support\Facades\Mail::to($tutor->email)->send(new \App\Mail\NewBookingMail([
-            'tutor_name' => $tutor->name,
-            'student_name' => $student->name,
-            'timing' => Carbon::parse($request->start_time)->format('M d, Y h:i A'),
-            'mode' => ucfirst($request->mode),
-            'address' => $request->address ?? 'Online',
-            'dashboard_link' => route('teacher.dashboard')
-        ]));
+        // Send Email to Tutor (wrapped so booking succeeds even if mail fails)
+        try {
+            \Illuminate\Support\Facades\Mail::to($tutor->email)->send(new \App\Mail\NewBookingMail([
+                'tutor_name'     => $tutor->name,
+                'student_name'   => $student->name,
+                'timing'         => Carbon::parse($request->start_time)->format('M d, Y h:i A'),
+                'mode'           => ucfirst($request->mode),
+                'address'        => $request->address ?? 'Online',
+                'dashboard_link' => url('/teacher/dashboard'),
+            ]));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Booking email failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',
@@ -109,15 +114,19 @@ class BookingController extends Controller
             'status' => 'pending',
         ]);
 
-        // Send Email to Tutor
-        \Illuminate\Support\Facades\Mail::to($tutor->email)->send(new \App\Mail\NewBookingMail([
-            'tutor_name' => $tutor->name,
-            'student_name' => $student->name,
-            'timing' => Carbon::parse($request->requested_time)->format('M d, Y h:i A') . " (Requested)",
-            'mode' => ucfirst($request->mode),
-            'address' => $request->address ?? 'Online',
-            'dashboard_link' => route('teacher.dashboard')
-        ]));
+        // Send Email to Tutor (wrapped so request succeeds even if mail fails)
+        try {
+            \Illuminate\Support\Facades\Mail::to($tutor->email)->send(new \App\Mail\NewBookingMail([
+                'tutor_name'     => $tutor->name,
+                'student_name'   => $student->name,
+                'timing'         => Carbon::parse($request->requested_time)->format('M d, Y h:i A') . ' (Requested)',
+                'mode'           => ucfirst($request->mode),
+                'address'        => $request->address ?? 'Online',
+                'dashboard_link' => url('/teacher/dashboard'),
+            ]));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Booking request email failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',
