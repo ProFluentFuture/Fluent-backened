@@ -35,6 +35,20 @@ class BookingController extends Controller
         $tutor = User::role('tutor')->findOrFail($request->tutor_id);
         $student = Auth::user();
 
+        // Check if student already has a pending or accepted booking with this tutor
+        $existingBooking = Booking::where('student_id', $student->id)
+            ->where('tutor_id', $tutor->id)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->first();
+
+        if ($existingBooking) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You already have a ' . $existingBooking->status . ' booking with this tutor.',
+                'existing_booking' => $existingBooking
+            ], 400);
+        }
+
         // 1. Determine Initial Status
         $status = 'pending';
 
@@ -159,5 +173,46 @@ class BookingController extends Controller
 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadius * $c;
+    }
+
+    /**
+     * Get Student's Bookings
+     */
+    public function getStudentBookings()
+    {
+        $student = Auth::user();
+        $bookings = Booking::where('student_id', $student->id)
+            ->with(['tutor', 'slot'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'bookings' => $bookings
+        ]);
+    }
+
+    /**
+     * Check if student can book a specific tutor
+     */
+    public function canBookTutor(Request $request)
+    {
+        $request->validate([
+            'tutor_id' => 'required|exists:users,id'
+        ]);
+
+        $student = Auth::user();
+        $tutorId = $request->tutor_id;
+
+        $existingBooking = Booking::where('student_id', $student->id)
+            ->where('tutor_id', $tutorId)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->first();
+
+        return response()->json([
+            'status' => 'success',
+            'can_book' => $existingBooking === null,
+            'existing_booking' => $existingBooking
+        ]);
     }
 }

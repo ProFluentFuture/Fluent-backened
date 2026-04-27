@@ -19,6 +19,7 @@ class Booking extends Model
         'lat',
         'lng',
         'status',
+        'rejection_reason',
     ];
 
     public function student(): BelongsTo

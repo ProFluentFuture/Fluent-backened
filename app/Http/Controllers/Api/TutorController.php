@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\TutorProfile;
 use App\Models\Location;
+use App\Models\Review;
+use App\Models\AvailabilitySlot;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class TutorController extends Controller
@@ -20,51 +23,34 @@ class TutorController extends Controller
             ->where('status', 'active')
             ->with(['tutorProfile', 'location', 'reviews']);
 
-        // Filter by Price Range
-        if ($request->has('min_price')) {
-            $query->whereHas('tutorProfile', function($q) use ($request) {
-                $q->where('price', '>=', $request->min_price);
-            });
-        }
-        if ($request->has('max_price')) {
-            $query->whereHas('tutorProfile', function($q) use ($request) {
-                $q->where('price', '<=', $request->max_price);
+        // Search by name
+        if ($request->has('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
             });
         }
 
-        // Filter by Experience
-        if ($request->has('min_experience')) {
-            $query->whereHas('tutorProfile', function($q) use ($request) {
-                $q->where('experience', '>=', $request->min_experience);
+        // Filter by city
+        if ($request->has('city')) {
+            $city = $request->city;
+            $query->whereHas('location', function ($q) use ($city) {
+                $q->where('city', 'like', "%{$city}%");
             });
         }
 
-        // Filter by Demo Class
-        if ($request->has('demo_class')) {
-            $query->whereHas('tutorProfile', function($q) use ($request) {
-                $q->where('demo_class_type', $request->demo_class);
-            });
-        }
-
-        // Filter by Tutor Type (home/online)
+        // Filter by tutor type
         if ($request->has('tutor_type')) {
-            $query->whereHas('tutorProfile', function($q) use ($request) {
-                $q->whereIn('tutor_type', [$request->tutor_type, 'both']);
+            $query->whereHas('tutorProfile', function ($q) use ($request) {
+                $q->where('tutor_type', $request->tutor_type);
             });
         }
 
-        // Location Logic
-        // If searching for home tutor, restrict to specific city/state if provided
-        if ($request->tutor_type === 'home' || $request->has('city')) {
-            $query->whereHas('location', function($q) use ($request) {
-                if ($request->has('city')) {
-                    $q->where('city', $request->city);
-                }
-                if ($request->has('state')) {
-                    $q->where('state', $request->state);
-                }
-            });
-        }
+        // Only active tutors
+        $query->whereHas('tutorProfile', function ($q) {
+            $q->where('status', 'active');
+        });
 
         $tutors = $query->paginate(10);
 
@@ -158,7 +144,7 @@ class TutorController extends Controller
     {
         $user = $request->user();
         $profile = $user->tutorProfile;
-        
+
         $profile->is_available = !$profile->is_available;
         $profile->save();
 
@@ -166,6 +152,23 @@ class TutorController extends Controller
             'status' => 'success',
             'message' => 'Availability updated',
             'is_available' => $profile->is_available
+        ]);
+    }
+
+    /**
+     * Get Tutor's Availability Slots (Public endpoint for students)
+     */
+    public function getTutorSlots($id)
+    {
+        $slots = AvailabilitySlot::where('tutor_id', $id)
+            ->where('is_active', true)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'slots' => $slots
         ]);
     }
 }

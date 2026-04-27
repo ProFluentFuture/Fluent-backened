@@ -21,6 +21,7 @@ Route::post('/register/tutor', [AuthController::class, 'registerTutor']);
 // Tutor Search (Public or Student access)
 Route::get('/tutors/search', [TutorController::class, 'search']);
 Route::get('/tutors/{id}', [TutorController::class, 'show']);
+Route::get('/tutors/{id}/slots', [TutorController::class, 'getTutorSlots']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -31,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('student')->middleware('role:student')->group(function () {
         Route::post('/bookings/now', [\App\Http\Controllers\Api\BookingController::class, 'bookNow']);
         Route::post('/bookings/request', [\App\Http\Controllers\Api\BookingController::class, 'sendRequest']);
+        Route::get('/bookings', [\App\Http\Controllers\Api\BookingController::class, 'getStudentBookings']);
+        Route::post('/bookings/can-book', [\App\Http\Controllers\Api\BookingController::class, 'canBookTutor']);
         Route::post('/attendance/{id}/confirm', [\App\Http\Controllers\Api\AttendanceController::class, 'confirmAttendance']);
         
         // Favorites & Reviews
@@ -53,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/bookings', [TutorBookingController::class, 'bookings']);
         Route::put('/bookings/{id}/status', [TutorBookingController::class, 'updateBookingStatus']);
         Route::put('/slots', [TutorBookingController::class, 'updateSlots']);
+        Route::get('/slots', [TutorBookingController::class, 'getSlots']);
         Route::post('/auto-accept', [TutorBookingController::class, 'toggleAutoAccept']);
     });
 

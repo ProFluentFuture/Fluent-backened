@@ -65,11 +65,18 @@ class TutorBookingController extends Controller
     public function updateBookingStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:accepted,rejected'
+            'status' => 'required|in:accepted,rejected',
+            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:500'
         ]);
 
         $booking = Booking::where('tutor_id', Auth::id())->findOrFail($id);
-        $booking->update(['status' => $request->status]);
+        $updateData = ['status' => $request->status];
+        
+        if ($request->status === 'rejected' && $request->has('rejection_reason')) {
+            $updateData['rejection_reason'] = $request->rejection_reason;
+        }
+        
+        $booking->update($updateData);
 
         return response()->json([
             'status' => 'success',
@@ -100,6 +107,23 @@ class TutorBookingController extends Controller
                 'auto_accept' => $profile->auto_accept_nearby,
                 'max_distance' => $profile->max_auto_accept_distance
             ]
+        ]);
+    }
+
+    /**
+     * Get Tutor's Availability Slots
+     */
+    public function getSlots()
+    {
+        $slots = AvailabilitySlot::where('tutor_id', Auth::id())
+            ->where('is_active', true)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'slots' => $slots
         ]);
     }
 }
