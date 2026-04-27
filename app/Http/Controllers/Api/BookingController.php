@@ -10,6 +10,9 @@ use App\Models\AvailabilitySlot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NewBookingMail;
 
 class BookingController extends Controller
 {
@@ -32,30 +35,34 @@ class BookingController extends Controller
         $tutor = User::role('tutor')->findOrFail($request->tutor_id);
         $student = Auth::user();
 
-        // Check if tutor is available (slot check)
-        $isAvailable = false;
-        if ($request->slot_id) {
-            $slot = AvailabilitySlot::where('id', $request->slot_id)
-                ->where('tutor_id', $tutor->id)
-                ->where('is_active', true)
-                ->first();
-            if ($slot) $isAvailable = true;
-        }
-
-        // Smart Feature: Auto Accept Nearby Requests
+        // 1. Determine Initial Status
         $status = 'pending';
+
+        // 2. Smart Feature: Auto Accept Nearby Requests (Made Optional & Null-Safe)
         $tutorProfile = $tutor->tutorProfile;
-        if ($tutorProfile && $tutorProfile->auto_accept_nearby && $request->lat && $request->lng) {
-            $distance = $this->calculateDistance(
-                $request->lat, $request->lng,
-                $tutor->location->latitude ?? 0,
-                $tutor->location->longitude ?? 0
-            );
-            if ($distance <= ($tutorProfile->max_auto_accept_distance ?? 10)) {
-                $status = 'accepted';
+
+        // Use the null-safe operator (?->) to prevent crashing if profile or location is missing
+        if ($tutorProfile?->auto_accept_nearby && $request->lat && $request->lng) {
+            $tutorLat = $tutor->location?->latitude;
+            $tutorLng = $tutor->location?->longitude;
+
+            // Only calculate if the tutor actually has coordinates set
+            if ($tutorLat !== null && $tutorLng !== null) {
+                $distance = $this->calculateDistance(
+                    $request->lat,
+                    $request->lng,
+                    $tutorLat,
+                    $tutorLng
+                );
+
+                $maxDistance = $tutorProfile->max_auto_accept_distance ?? 10;
+                if ($distance <= $maxDistance) {
+                    $status = 'accepted';
+                }
             }
         }
 
+        // 3. Create the Booking
         $booking = Booking::create([
             'student_id' => $student->id,
             'tutor_id' => $tutor->id,
@@ -69,29 +76,31 @@ class BookingController extends Controller
             'status' => $status,
         ]);
 
-        // Send Email to Tutor (wrapped so booking succeeds even if mail fails)
+        // 4. Send Email to Tutor (Wrapped in try-catch to prevent API crash on mail failure)
         try {
-            \Illuminate\Support\Facades\Mail::to($tutor->email)->send(new \App\Mail\NewBookingMail([
-                'tutor_name'     => $tutor->name,
-                'student_name'   => $student->name,
-                'timing'         => Carbon::parse($request->start_time)->format('M d, Y h:i A'),
-                'mode'           => ucfirst($request->mode),
-                'address'        => $request->address ?? 'Online',
+            Mail::to($tutor->email)->send(new NewBookingMail([
+                'tutor_name' => $tutor->name,
+                'student_name' => $student->name,
+                'timing' => Carbon::parse($request->start_time)->format('M d, Y h:i A'),
+                'mode' => ucfirst($request->mode),
+                'address' => $request->address ?? 'Online',
                 'dashboard_link' => url('/teacher/dashboard'),
             ]));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Booking email failed: ' . $e->getMessage());
+            Log::warning('Booking email failed: ' . $e->getMessage());
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => $status === 'accepted' ? 'Booking automatically accepted based on proximity!' : 'Booking requested successfully.',
+            'message' => $status === 'accepted'
+                ? 'Booking automatically accepted based on proximity!'
+                : 'Booking requested successfully.',
             'booking' => $booking
         ]);
     }
 
     /**
-     * Case 2: Student Sends Request (Tutor not available)
+     * Case 2: Student Sends Request (Manual)
      */
     public function sendRequest(Request $request)
     {
@@ -114,18 +123,17 @@ class BookingController extends Controller
             'status' => 'pending',
         ]);
 
-        // Send Email to Tutor (wrapped so request succeeds even if mail fails)
         try {
-            \Illuminate\Support\Facades\Mail::to($tutor->email)->send(new \App\Mail\NewBookingMail([
-                'tutor_name'     => $tutor->name,
-                'student_name'   => $student->name,
-                'timing'         => Carbon::parse($request->requested_time)->format('M d, Y h:i A') . ' (Requested)',
-                'mode'           => ucfirst($request->mode),
-                'address'        => $request->address ?? 'Online',
+            Mail::to($tutor->email)->send(new NewBookingMail([
+                'tutor_name' => $tutor->name,
+                'student_name' => $student->name,
+                'timing' => Carbon::parse($request->requested_time)->format('M d, Y h:i A') . ' (Requested)',
+                'mode' => ucfirst($request->mode),
+                'address' => $request->address ?? 'Online',
                 'dashboard_link' => url('/teacher/dashboard'),
             ]));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Booking request email failed: ' . $e->getMessage());
+            Log::warning('Booking request email failed: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -146,8 +154,8 @@ class BookingController extends Controller
         $dLng = deg2rad($lng2 - $lng1);
 
         $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLng / 2) * sin($dLng / 2);
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLng / 2) * sin($dLng / 2);
 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadius * $c;
