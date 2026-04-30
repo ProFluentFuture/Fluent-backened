@@ -222,9 +222,7 @@
         </div>
     </main>
 
-    <footer>
-        © 2026 FluentFuture LMS. AI-powered language mastery.
-    </footer>
+  
 
 </body>
 </html>
