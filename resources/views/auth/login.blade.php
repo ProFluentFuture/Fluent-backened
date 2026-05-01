@@ -13,8 +13,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #ffffff;
-            color: #0f172a;
+            background: #000000;
+            color: #ffffff;
             line-height: 1.6;
             display: flex;
             flex-direction: column;
@@ -160,11 +160,7 @@
 </head>
 <body>
 
-    <nav>
-        <div class="nav-inner">
-            <a href="/" class="logo">FluentFuture</a>
-        </div>
-    </nav>
+
 
     <main class="auth-container">
         <div class="auth-card">
