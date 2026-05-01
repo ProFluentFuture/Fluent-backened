@@ -13,8 +13,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #000000;
-            color: #ffffff;
+            background: #ffffff;
+            color: #0f172a;
             line-height: 1.6;
             display: flex;
             flex-direction: column;
