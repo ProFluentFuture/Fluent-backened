@@ -17,8 +17,8 @@
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #ffffff;
-            color: #0f172a;
+            background: #000000;
+            color: #ffffff;
             line-height: 1.6;
             overflow-x: hidden;
         }
