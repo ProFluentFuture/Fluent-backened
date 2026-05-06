@@ -62,6 +62,9 @@ class AuthController extends Controller
             'password' => 'required|string|min:6',
             'role' => 'required|in:student,tutor',
             'otp' => 'required|string|size:6',
+            // Student specific fields
+            'institution_type' => 'required_if:role,student|nullable|string',
+            'institution_name' => 'required_if:role,student|nullable|string',
             // Tutor specific fields
             'phone' => 'required_if:role,tutor|string|max:20',
             'city' => 'required_if:role,tutor|string',
@@ -89,6 +92,8 @@ class AuthController extends Controller
                 'role' => $request->role,
                 'status' => $request->role === 'tutor' ? 'pending' : 'active',
                 'email_verified_at' => now(), // Assume OTP was verified on frontend
+                'institution_type' => $request->role === 'student' ? $request->institution_type : null,
+                'institution_name' => $request->role === 'student' ? $request->institution_name : null,
             ]);
 
             if ($request->role === 'student') {
@@ -161,6 +166,8 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:6',
+            'institution_type' => 'nullable|string',
+            'institution_name' => 'nullable|string',
         ]);
 
         $freePlan = SubscriptionPlan::where('name', 'Free')->first();
@@ -173,6 +180,8 @@ class AuthController extends Controller
             'role' => 'student',
             'status' => 'active',
             'subscription_plan_id' => $freePlan ? $freePlan->id : null,
+            'institution_type' => $request->institution_type,
+            'institution_name' => $request->institution_name,
         ]);
 
         $token = $user->createToken('student_token')->plainTextToken;

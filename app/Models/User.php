@@ -33,6 +33,8 @@ class User extends Authenticatable
         'current_level',
         'otp',
         'otp_expires_at',
+        'institution_type',
+        'institution_name',
     ];
 
     public function subscriptionPlan()
