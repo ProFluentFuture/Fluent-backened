@@ -171,4 +171,16 @@ class TutorController extends Controller
             'slots' => $slots
         ]);
     }
+
+    /**
+     * Get list of active subjects
+     */
+    public function getSubjects()
+    {
+        $subjects = \App\Models\Subject::where('is_active', true)->get();
+        return response()->json([
+            'status' => 'success',
+            'subjects' => $subjects
+        ]);
+    }
 }

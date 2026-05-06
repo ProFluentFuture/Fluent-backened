@@ -22,7 +22,8 @@ class TutorWebAuthController extends Controller
 
     public function showRegister()
     {
-        return view('tutor.auth.register');
+        $subjects = \App\Models\Subject::where('is_active', true)->get();
+        return view('tutor.auth.register', compact('subjects'));
     }
 
     public function register(Request $request)
@@ -36,6 +37,8 @@ class TutorWebAuthController extends Controller
             'state' => 'required|string',
             'area' => 'required|string',
             'tutor_type' => 'required|in:home,online,both',
+            'subject_ids' => 'required|array',
+            'subject_ids.*' => 'exists:subjects,id',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -48,10 +51,14 @@ class TutorWebAuthController extends Controller
                 'status' => 'pending',
             ]);
 
-            TutorProfile::create([
+            $profile = TutorProfile::create([
                 'user_id' => $user->id,
                 'tutor_type' => $request->tutor_type,
             ]);
+
+            if ($request->has('subject_ids')) {
+                $profile->subjects()->attach($request->subject_ids);
+            }
 
             Location::create([
                 'user_id' => $user->id,

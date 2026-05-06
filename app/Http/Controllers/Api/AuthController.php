@@ -71,6 +71,8 @@ class AuthController extends Controller
             'state' => 'required_if:role,tutor|string',
             'area' => 'required_if:role,tutor|string',
             'tutor_type' => 'required_if:role,tutor|in:home,online,both',
+            'subject_ids' => 'required_if:role,tutor|array',
+            'subject_ids.*' => 'exists:subjects,id',
         ]);
 
         $cachedOtp = Cache::get('otp_' . $request->email);
@@ -102,10 +104,14 @@ class AuthController extends Controller
                     $user->update(['subscription_plan_id' => $freePlan->id]);
                 }
             } else {
-                TutorProfile::create([
+                $profile = TutorProfile::create([
                     'user_id' => $user->id,
                     'tutor_type' => $request->tutor_type,
                 ]);
+
+                if ($request->has('subject_ids')) {
+                    $profile->subjects()->attach($request->subject_ids);
+                }
 
                 Location::create([
                     'user_id' => $user->id,
@@ -205,6 +211,8 @@ class AuthController extends Controller
             'state' => 'required|string',
             'area' => 'required|string',
             'tutor_type' => 'required|in:home,online,both',
+            'subject_ids' => 'required|array',
+            'subject_ids.*' => 'exists:subjects,id',
         ]);
 
         return DB::transaction(function () use ($request) {
@@ -217,10 +225,14 @@ class AuthController extends Controller
                 'status' => 'pending', // Approval required
             ]);
 
-            TutorProfile::create([
+            $profile = TutorProfile::create([
                 'user_id' => $user->id,
                 'tutor_type' => $request->tutor_type,
             ]);
+
+            if ($request->has('subject_ids')) {
+                $profile->subjects()->attach($request->subject_ids);
+            }
 
             Location::create([
                 'user_id' => $user->id,

@@ -22,6 +22,7 @@ Route::post('/register/tutor', [AuthController::class, 'registerTutor']);
 Route::get('/tutors/search', [TutorController::class, 'search']);
 Route::get('/tutors/{id}', [TutorController::class, 'show']);
 Route::get('/tutors/{id}/slots', [TutorController::class, 'getTutorSlots']);
+Route::get('/subjects', [TutorController::class, 'getSubjects']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

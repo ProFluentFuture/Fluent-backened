@@ -66,6 +66,17 @@
                     </select>
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Subjects (Multiple)</label>
+                    <select name="subject_ids[]" class="form-select" multiple required style="height: 100px;">
+                        @foreach($subjects as $subject)
+                            <option value="{{ $subject->id }}" {{ $subject->name == 'English' ? 'selected' : '' }}>
+                                {{ $subject->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label small fw-bold text-muted">City</label>
                     <input type="text" name="city" class="form-control" placeholder="New York" required>
                 </div>
